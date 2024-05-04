@@ -12,7 +12,7 @@ namespace WebDemo.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        
+
         public EmployeeController(ApplicationDbContext context)
         {
             _context = context;
@@ -23,7 +23,29 @@ namespace WebDemo.Controllers
         {
             try
             {
-                var getData = await _context.Employee!.ToListAsync();
+                var getData = await (from s in _context.Employee
+                                     let DearnessAllowance = s.BasicSalary * (s.BasicSalary * 40 / 100)
+                                     let ConveyanceAllowance = (DearnessAllowance * (s.BasicSalary * 10 / 100)) < 250 ? (DearnessAllowance * (s.BasicSalary * 10 / 100)) : 250
+                                     let HouseRentAllowance = (s.BasicSalary * (s.BasicSalary * 25 / 100)) > 1500 ? (s.BasicSalary * (s.BasicSalary * 25 / 100)) : 1500
+                                     let GrossSalary = s.BasicSalary + DearnessAllowance + ConveyanceAllowance + HouseRentAllowance
+                                     let PT = (GrossSalary <= 3000) ? 100 :
+                                          ((GrossSalary > 3000 && GrossSalary <= 6000) ? 150 : 200)
+                                     select new
+                                     {
+                                         s.Id,
+                                         s.EmployeeCode,
+                                         s.EmployeeName,
+                                         s.Gender,
+                                         s.Department,
+                                         s.Designation,
+                                         s.DateOfBirth,
+                                         s.BasicSalary,
+                                         DearnessAllowance = DearnessAllowance,
+                                         ConveyanceAllowance = ConveyanceAllowance,
+                                         HouseRentAllowance = HouseRentAllowance,
+                                         PT = PT,
+                                         TotalSalary = s.BasicSalary + DearnessAllowance + ConveyanceAllowance + HouseRentAllowance - PT
+                                     }).ToListAsync();
                 return Ok(new
                 {
                     status = 1,
@@ -41,7 +63,7 @@ namespace WebDemo.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> PutClass(Employee employee)
+        public async Task<IActionResult> PutEmployee(Employee employee)
         {
             _context.Entry(employee).State = EntityState.Modified;
             try
@@ -67,7 +89,7 @@ namespace WebDemo.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<Employee>> PostClass(Employee employee)
+        public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
         {
             try
             {
